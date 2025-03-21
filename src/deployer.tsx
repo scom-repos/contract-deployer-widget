@@ -4,6 +4,7 @@ import { ScomCodeEditor } from '@scom/scom-code-editor';
 import customStyles from './index.css';
 import { getWalletModel, setWalletModel } from './store';
 import { VStack } from '@ijstech/components';
+import { IPackage } from './interface';
 
 const Theme = Styles.Theme.ThemeVars;
 
@@ -15,8 +16,16 @@ declare global {
   }
 };
 
+interface IDeployData {
+  contract: string;
+  script?: string;
+  dependencies?: IPackage[];
+}
+
 interface DeployerElement extends ControlElement {
   contract?: string;
+  script?: string;
+  dependencies?: IPackage[];
 }
 
 @customElements('i-scom-contract-deployer-widget--deployer')
@@ -26,24 +35,58 @@ export default class ScomContractDeployerDeployer extends Module {
   private pnlPreview: Panel;
   private logs: VStack;
 
-  private _contract: string;
+  private _data: IDeployData = { contract: '', dependencies: [], script: '' };
 
   get contract() {
-    return this._contract;
+    return this._data.contract;
   }
 
   set contract(value: string) {
-    this._contract = value;
+    this._data.contract = value;
   }
 
-  async setData(value: string) {
-    this.contract = value;
-    this.codeEditorOptions.value = '';
-    this.codeEditorResult.value = '';
-    const pkg = await application.loadPackage(value);
+  get script() {
+    return this._data.script;
+  }
+
+  set script(value: string) {
+    this._data.script = value;
+  }
+
+  get dependencies() {
+    return this._data.dependencies || [];
+  }
+
+  set dependencies(value: IPackage[]) {
+    this._data.dependencies = value || [];
+  }
+
+  async setData(value: IDeployData) {
+    this.clear();
+    this._data = value;
+    console.log('setData', value);
+
+    if (this.script) {
+      if (this.dependencies?.length) {
+        for (const dep of this.dependencies) {
+          if (!dep.script) continue;
+          await application.loadScript(dep.module, dep.script, true);
+        }
+      }
+      await application.loadScript(this.contract, this.script, true);
+    }
+
+    const pkg = await application.loadPackage(this.contract);
     if (pkg?.DefaultDeployOptions) {
       this.codeEditorOptions.value = JSON.stringify(pkg.DefaultDeployOptions, null, 4);
     }
+  }
+
+  clear() {
+    if (this.codeEditorOptions) this.codeEditorOptions.value = '';
+    if (this.codeEditorResult) this.codeEditorResult.value = '';
+    if (this.logs) this.logs.clearInnerHTML();
+    if (this.pnlPreview) this.pnlPreview.visible = false;
   }
 
   renderDeployResult(content: string) {
@@ -51,12 +94,14 @@ export default class ScomContractDeployerDeployer extends Module {
     this.logs.append(<i-label caption={newContent}></i-label>);
   }
 
-  init() {
+  async init() {
     application.store.publicIndexingRelay = "https://relay.decom.app/api/v1";
     super.init();
     this.deploy = this.deploy.bind(this);
     const contract = this.getAttribute('contract', true);
-    if (contract) this.contract = contract;
+    const script = this.getAttribute('script', true);
+    const dependencies = this.getAttribute('dependencies', true);
+    if (contract) await this.setData({ contract, script, dependencies });
     application.EventBus.register(this, 'IsTonWalletConnected', async (walletModel: any) => {
       setWalletModel(walletModel);
     });
