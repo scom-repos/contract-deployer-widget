@@ -3,7 +3,7 @@ import { Wallet } from '@ijstech/eth-wallet';
 import { ScomCodeEditor } from '@scom/scom-code-editor';
 import customStyles from './index.css';
 import { getWalletModel, setWalletModel } from './store';
-import { VStack } from '@ijstech/layout';
+import { VStack } from '@ijstech/components';
 
 const Theme = Styles.Theme.ThemeVars;
 
