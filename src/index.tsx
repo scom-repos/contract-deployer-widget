@@ -1,6 +1,6 @@
 import { Module, Container, customModule, customElements, ControlElement, application } from '@ijstech/components';
 import { } from '@ijstech/eth-contract';
-import { INetworkConfig, IWalletPlugin } from './interface';
+import { INetworkConfig, IPackage, IWalletPlugin } from './interface';
 import ScomDappContainer from '@scom/scom-dapp-container';
 import ScomContractDeployerDeployer from './deployer';
 import configData from './defaultData';
@@ -17,15 +17,19 @@ declare global {
 interface ContractDeployerElement extends ControlElement {
 	networks?: INetworkConfig[];
 	wallets?: IWalletPlugin[];
-	contract?: string;
 	defaultChainId?: number;
+	contract?: string;
+	script?: string;
+	dependencies?: IPackage[];
 }
 
 interface IData {
 	networks?: INetworkConfig[];
 	wallets?: IWalletPlugin[];
-	contract?: string;
 	defaultChainId?: number;
+	contract?: string;
+	script?: string;
+	dependencies?: IPackage[];
 }
 
 @customModule
@@ -69,9 +73,27 @@ export default class ScomContractDeployer extends Module {
 		this._data.defaultChainId = value;
 	}
 
+	get script() {
+		return this._data?.script;
+	}
+	set script(value: string) {
+		this._data.script = value;
+	}
+
+	get dependencies() {
+		return this._data?.dependencies || [];
+	}
+	set dependencies(value: IPackage[]) {
+		this._data.dependencies = value || [];
+	}
+
 	async setData(data: IData) {
 		this._data = data;
-		if (this.contract) this.deployer.setData(this.contract);
+		if (this.contract) this.deployer.setData({
+			contract: this.contract,
+			script: this.script,
+			dependencies: this.dependencies
+		});
 		if (this.dappContainer) {
 			this.initRpcWallet(this.defaultChainId);
 			await this.dappContainer.setData({
@@ -91,6 +113,7 @@ export default class ScomContractDeployer extends Module {
 			return this.rpcWalletId;
 		}
 		const clientWallet = Wallet.getClientInstance();
+		if (!clientWallet) return '';
 		const networkList: INetwork[] = Object.values(application.store?.networkMap || []);
 		const instanceId = clientWallet.initRpcWallet({
 			networks: networkList,
@@ -109,15 +132,17 @@ export default class ScomContractDeployer extends Module {
 	async init() {
 		super.init();
 		const contract = this.getAttribute('contract', true);
+		const script = this.getAttribute('script', true);
+		const dependencies = this.getAttribute('dependencies', true);
 		const networks = this.getAttribute('networks', true);
 		const wallets = this.getAttribute('wallets', true);
 
-		await this.setData({ contract, networks, wallets });
+		await this.setData({ contract, networks, wallets , script, dependencies });
 	};
 
 	render() {
 		return (
-			<i-scom-dapp-container id="dappContainer">
+			<i-scom-dapp-container id="dappContainer" showHeader={true} showFooter={false} showWalletNetwork={true}>
 				<i-panel>
 					<i-scom-contract-deployer-widget--deployer
 						id="deployer"

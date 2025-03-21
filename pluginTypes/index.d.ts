@@ -27,6 +27,10 @@ declare module "@scom/contract-deployer-widget/interface.ts" {
         packageName?: string;
         provider: IClientSideProvider;
     }
+    export interface IPackage {
+        module: string;
+        script?: string;
+    }
 }
 /// <amd-module name="@scom/contract-deployer-widget/index.css.ts" />
 declare module "@scom/contract-deployer-widget/index.css.ts" {
@@ -41,6 +45,7 @@ declare module "@scom/contract-deployer-widget/store.ts" {
 /// <amd-module name="@scom/contract-deployer-widget/deployer.tsx" />
 declare module "@scom/contract-deployer-widget/deployer.tsx" {
     import { Module, ControlElement } from '@ijstech/components';
+    import { IPackage } from "@scom/contract-deployer-widget/interface.ts";
     global {
         namespace JSX {
             interface IntrinsicElements {
@@ -48,20 +53,32 @@ declare module "@scom/contract-deployer-widget/deployer.tsx" {
             }
         }
     }
+    interface IDeployData {
+        contract: string;
+        script?: string;
+        dependencies?: IPackage[];
+    }
     interface DeployerElement extends ControlElement {
         contract?: string;
+        script?: string;
+        dependencies?: IPackage[];
     }
     export default class ScomContractDeployerDeployer extends Module {
         private codeEditorOptions;
         private codeEditorResult;
         private pnlPreview;
         private logs;
-        private _contract;
+        private _data;
         get contract(): string;
         set contract(value: string);
-        setData(value: string): Promise<void>;
+        get script(): string;
+        set script(value: string);
+        get dependencies(): IPackage[];
+        set dependencies(value: IPackage[]);
+        setData(value: IDeployData): Promise<void>;
+        clear(): void;
         renderDeployResult(content: string): void;
-        init(): void;
+        init(): Promise<void>;
         deploy(): void;
         render(): any;
     }
@@ -87,7 +104,7 @@ declare module "@scom/contract-deployer-widget/defaultData.ts" {
 /// <amd-module name="@scom/contract-deployer-widget" />
 declare module "@scom/contract-deployer-widget" {
     import { Module, Container, ControlElement } from '@ijstech/components';
-    import { INetworkConfig, IWalletPlugin } from "@scom/contract-deployer-widget/interface.ts";
+    import { INetworkConfig, IPackage, IWalletPlugin } from "@scom/contract-deployer-widget/interface.ts";
     global {
         namespace JSX {
             interface IntrinsicElements {
@@ -98,14 +115,18 @@ declare module "@scom/contract-deployer-widget" {
     interface ContractDeployerElement extends ControlElement {
         networks?: INetworkConfig[];
         wallets?: IWalletPlugin[];
-        contract?: string;
         defaultChainId?: number;
+        contract?: string;
+        script?: string;
+        dependencies?: IPackage[];
     }
     interface IData {
         networks?: INetworkConfig[];
         wallets?: IWalletPlugin[];
-        contract?: string;
         defaultChainId?: number;
+        contract?: string;
+        script?: string;
+        dependencies?: IPackage[];
     }
     export default class ScomContractDeployer extends Module {
         private dappContainer;
@@ -121,6 +142,10 @@ declare module "@scom/contract-deployer-widget" {
         set contract(value: string);
         get defaultChainId(): number;
         set defaultChainId(value: number);
+        get script(): string;
+        set script(value: string);
+        get dependencies(): IPackage[];
+        set dependencies(value: IPackage[]);
         setData(data: IData): Promise<void>;
         private initRpcWallet;
         init(): Promise<void>;

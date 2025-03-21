@@ -29,3 +29,8 @@ export interface IWalletPlugin {
 	packageName?: string;
 	provider: IClientSideProvider;
 }
+
+export interface IPackage {
+  module: string;
+  script?: string;
+}
